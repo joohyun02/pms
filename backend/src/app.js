@@ -12,10 +12,17 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      process.env.FRONTEND_URL,
-    ].filter(Boolean),
+    origin: (origin, callback) => {
+      const allowed = [
+        process.env.FRONTEND_URL,
+        "http://localhost:5173"
+      ];
+
+      if (!origin) return callback(null, true);
+      if (allowed.includes(origin)) return callback(null, true);
+
+      return callback(new Error("CORS 차단됨: " + origin));
+    },
     credentials: true,
   })
 );

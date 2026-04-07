@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 export default function Register() {
   const [form, setForm] = useState({
     email: "",
@@ -12,7 +14,6 @@ export default function Register() {
 
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const isCeo = form.level === "대표";
 
   const handleChange = (e) => {
     setForm((prev) => ({
@@ -24,26 +25,18 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (
-      !form.email || !form.password || !form.name || !form.level) {
+    if (!form.email || !form.password || !form.name || !form.level || !form.team) {
       return alert("모든 항목 입력");
     }
-
-    const payload = {
-      ...form,
-    };
-
-    console.log("회원가입 payload", payload);
-
     try {
       setLoading(true);
 
-      const res = await fetch("http://localhost:3000/auth/register", {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(form),
       });
 
       const result = await res.json();
@@ -103,39 +96,43 @@ export default function Register() {
         </div>
 
         <div>
-          <select name="team"
-          value={isCeo ? "관리팀" : form.team}
-          onChange={handleChange}
-          style={{width: "10%"}}
-          disabled={isCeo}
+          <select
+            name="team"
+            value={form.team}
+            onChange={handleChange}
+            style={{ width: "10%" }}
           >
             <option value="">팀 선택</option>
+            <option value="관리팀">관리팀</option>
             <option value="개발팀">개발팀</option>
             <option value="기획팀">기획팀</option>
             <option value="디자인팀">디자인팀</option>
-            <option value="관리팀">관리팀</option>
           </select>
         </div>
-        <select name="level" value={form.level} onChange={handleChange}>
+
+        <div>
+          <select name="level" value={form.level} onChange={handleChange}>
             <option value="">직급 선택</option>
             <option value="팀장">팀장</option>
             <option value="팀원">팀원</option>
           </select>
+        </div>
 
         <div style={{ marginTop: "10px" }}>
-            <button type="submit" disabled={loading}>
-                {loading ? "신청 중..." : "회원가입 신청"}
-            </button>
+          <button type="submit" disabled={loading}>
+            {loading ? "신청 중..." : "회원가입 신청"}
+          </button>
 
-            <br />
-            <button
-                type="button"
-                onClick={() => navigate("/login")}
-                style={{ width: "15%" }}
-            >
-                로그인 페이지로 돌아가기
-            </button>
-            </div>
+          <br />
+
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            style={{ width: "15%" }}
+          >
+            로그인 페이지로 돌아가기
+          </button>
+        </div>
       </form>
     </div>
   );
