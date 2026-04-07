@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum TaskStatus {
+  지시등록
+  읽음
+  진행중
+  완료보고
+  보완요청
+  결재완료
+}
+
+enum TaskMemberRole {
+  OWNER
+  MEMBER
+}
+
+enum TeamType {
+  대표
+  관리팀
+  개발팀
+  기획팀
+  디자인팀
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  level     String
+  team      TeamType
+  createdAt DateTime @default(now())
+
+  status       UserStatus @default(PENDING)
+  approvedAt   DateTime?
+  approvedById String?
+
+  ledTasks           Task[]              @relation("TaskLeader")
+  taskMemberships    TaskMember[]
+  permissionRequests PermissionRequest[]
+
+  comments      Comment[]
+  statusChanges StatusHistory[]
+  attachments   Attachment[]
+}
+
+model Task {
+  id        String @id @default(cuid())
+  displayId String @unique
+  title     String
+  content   String
+
+  leaderId String
+  leader   User   @relation("TaskLeader", fields: [leaderId], references: [id])
+
+  dueAt       DateTime
+  status      TaskStatus @default(지시등록)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  completedAt DateTime?
+  isDeleted   Boolean    @default(false)
+
+  members            TaskMember[]
+  comments           Comment[]
+  statusHistory      StatusHistory[]
+  permissionRequests PermissionRequest[]
+  attachments        Attachment[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  taskId    String
+  writerId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  writer User @relation(fields: [writerId], references: [id])
+}
+
+model StatusHistory {
+  id         String     @id @default(cuid())
+  taskId     String
+  changerId  String
+  fromStatus TaskStatus
+  toStatus   TaskStatus
+  comment    String? //상태변경추가설명
+  createdAt  DateTime   @default(now())
+
+  task    Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  changer User @relation(fields: [changerId], references: [id])
+}
+
+model PermissionRequest {
+  id          String   @id @default(cuid())
+  taskId      String
+  requesterId String
+  status      String   @default("PENDING") // PENDING / APPROVED / REJECTED
+  createdAt   DateTime @default(now())
+
+  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  requester User @relation(fields: [requesterId], references: [id])
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  taskId       String
+  uploaderId   String
+  originalName String
+  storedName   String
+  filePath     String
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+
+  task     Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploader User @relation(fields: [uploaderId], references: [id])
+}
+
+model TaskMember {
+  id        String         @id @default(cuid())
+  taskId    String
+  userId    String
+  role      TaskMemberRole @default(MEMBER)
+  createdAt DateTime       @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+}
